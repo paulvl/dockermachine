@@ -1,0 +1,61 @@
+version: '2'
+
+services:
+
+  nginx:
+    image: nginx
+    container_name: docker_nginx
+    volumes:
+        - ~/repositories:/var/www/code
+        - ./sites:/var/www/html
+        - ./nginx:/etc/nginx/conf.d
+    ports:
+     - "80:80"
+    links:
+     - php-fpm
+     
+  mysql:
+    image: mysql
+    container_name: docker_mysql
+    ports:
+      - "3306:3306"
+    volumes:
+      - /var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=docker
+      - MYSQL_PASSWORD=secret
+
+  php-fpm:
+    image: paulvl/php-fpm
+    container_name: docker_php_fpm
+    volumes:
+      - ~/repositories:/var/www/code
+      - ./nginx:/home/nginx
+      - ./php-fpm/php-ini-overrides.ini:/etc/php5/fpm/conf.d/99-overrides.ini
+    command: /usr/sbin/php5-fpm
+    links:
+     - php-compile
+     - mysql
+
+  php-compile:
+    image: paulvl/php-fpm
+    volumes:
+      - ~/repositories:/var/www/code
+      - ./nginx:/home/nginx
+      - ./src:/home/scripts
+    command: php /home/scripts/compile.php
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: docker_phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=172.17.0.1
+    restart: always
+    ports:
+      - 8080:80
+    volumes:
+      - /sessions
+    links:
+     - mysql
